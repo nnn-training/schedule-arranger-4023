@@ -12,12 +12,16 @@ dayjs.extend(timezone);
 /* GET home page. */
 router.get('/', async (req, res, next) => {
   const title = '予定調整くん';
+  let order = [['updatedAt', 'DESC']]; // default
+  if (req.query.sort === 'name') {
+    order = [['scheduleName', 'ASC']];
+  }
   if (req.user) {
     const schedules = await Schedule.findAll({
       where: {
         createdBy: req.user.id
       },
-      order: [['updatedAt', 'DESC']]
+      order
     });
     schedules.forEach((schedule) => {
       schedule.formattedUpdatedAt = dayjs(schedule.updatedAt).tz('Asia/Tokyo').format('YYYY/MM/DD HH:mm');
