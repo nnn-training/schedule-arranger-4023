@@ -97,7 +97,7 @@ app.get('/auth/github/callback',
       res.clearCookie('loginFrom');
       res.redirect(loginFrom);
     } else {
-      res.redirect('/app');
+      res.redirect('/');
     }
 });
 
