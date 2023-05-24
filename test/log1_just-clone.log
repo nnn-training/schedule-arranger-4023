@@ -1,0 +1,475 @@
+root@6521c82f361c:/app# yarn test
+yarn run v1.22.18
+$ jest --testTimeout=10000 --forceExit
+GET /login 200 522.325 ms - 799
+GET /login 200 48.356 ms - 799
+  console.log
+    Executing (default): CREATE TABLE IF NOT EXISTS "users" ("userId" INTEGER NOT NULL , "username" VARCHAR(255) NOT NULL, PRIMARY KEY ("userId"));
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+GET /logout 302 89.718 ms - 23
+  console.log
+    Executing (default): SELECT i.relname AS name, ix.indisprimary AS primary, ix.indisunique AS unique, ix.indkey AS indkey, array_agg(a.attnum) as column_indexes, array_agg(a.attname) AS column_names, pg_get_indexdef(ix.indexrelid) AS definition FROM pg_class t, pg_class i, pg_index ix, pg_attribute a WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid AND t.relkind = 'r' and t.relname = 'users' GROUP BY i.relname, ix.indexrelid, ix.indisprimary, ix.indisunique, ix.indkey ORDER BY i.relname;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "users" ("userId","username") VALUES ($1,$2) ON CONFLICT ("userId") DO UPDATE SET "userId"=EXCLUDED."userId","username"=EXCLUDED."username" RETURNING "userId","username";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): CREATE TABLE IF NOT EXISTS "schedules" ("scheduleId" UUID NOT NULL , "scheduleName" VARCHAR(255) NOT NULL, "memo" TEXT NOT NULL, "createdBy" INTEGER NOT NULL REFERENCES "users" ("userId") ON DELETE NO ACTION ON UPDATE CASCADE, "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL, PRIMARY KEY ("scheduleId"));
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): CREATE TABLE IF NOT EXISTS "comments" ("scheduleId" UUID NOT NULL , "userId" INTEGER NOT NULL  REFERENCES "users" ("userId") ON DELETE NO ACTION ON UPDATE CASCADE, "comment" VARCHAR(255) NOT NULL, PRIMARY KEY ("scheduleId","userId"));
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): CREATE TABLE IF NOT EXISTS "candidates" ("candidateId"   SERIAL , "candidateName" VARCHAR(255) NOT NULL, "scheduleId" UUID NOT NULL, PRIMARY KEY ("candidateId"));
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT i.relname AS name, ix.indisprimary AS primary, ix.indisunique AS unique, ix.indkey AS indkey, array_agg(a.attnum) as column_indexes, array_agg(a.attname) AS column_names, pg_get_indexdef(ix.indexrelid) AS definition FROM pg_class t, pg_class i, pg_index ix, pg_attribute a WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid AND t.relkind = 'r' and t.relname = 'schedules' GROUP 
+BY i.relname, ix.indexrelid, ix.indisprimary, ix.indisunique, ix.indkey ORDER BY i.relname;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT i.relname AS name, ix.indisprimary AS primary, ix.indisunique AS unique, ix.indkey AS indkey, array_agg(a.attnum) as column_indexes, array_agg(a.attname) AS column_names, pg_get_indexdef(ix.indexrelid) AS definition FROM pg_class t, pg_class i, pg_index ix, pg_attribute a WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid AND t.relkind = 'r' and t.relname = 'comments' GROUP BY i.relname, ix.indexrelid, ix.indisprimary, ix.indisunique, ix.indkey ORDER BY i.relname;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "schedules" ("scheduleId","scheduleName","memo","createdBy","updatedAt") VALUES ($1,$2,$3,$4,$5) RETURNING "scheduleId","scheduleName","memo","createdBy","updatedAt";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT i.relname AS name, ix.indisprimary AS primary, ix.indisunique AS unique, ix.indkey AS indkey, array_agg(a.attnum) as column_indexes, array_agg(a.attname) AS column_names, pg_get_indexdef(ix.indexrelid) AS definition FROM pg_class t, pg_class i, pg_index ix, pg_attribute a WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid AND t.relkind = 'r' and t.relname = 'candidates' GROUP BY i.relname, ix.indexrelid, ix.indisprimary, ix.indisunique, ix.indkey ORDER BY i.relname;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テスト候補1','f5738ea2-0858-4b40-ab89-b6d5fa58abe8'),(DEFAULT,'テスト候補2','f5738ea2-0858-4b40-ab89-b6d5fa58abe8'),(DEFAULT,'テスト候補3','f5738ea2-0858-4b40-ab89-b6d5fa58abe8') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): CREATE TABLE IF NOT EXISTS "availabilities" ("candidateId" INTEGER NOT NULL  REFERENCES "candidates" ("candidateId") ON DELETE NO ACTION ON UPDATE CASCADE, "userId" INTEGER NOT NULL  REFERENCES "users" ("userId") ON DELETE NO ACTION ON UPDATE CASCADE, "availability" INTEGER NOT NULL DEFAULT 0, "scheduleId" UUID NOT NULL, PRIMARY KEY ("candidateId","userId"));
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules 302 324.319 ms - 69
+  console.log
+    Executing (default): SELECT i.relname AS name, ix.indisprimary AS primary, ix.indisunique AS unique, ix.indkey AS indkey, array_agg(a.attnum) as column_indexes, array_agg(a.attname) AS column_names, pg_get_indexdef(ix.indexrelid) AS definition FROM pg_class t, pg_class i, pg_index ix, pg_attribute a WHERE t.oid = ix.indrelid AND i.oid = ix.indexrelid AND a.attrelid = t.oid AND t.relkind = 'r' and t.relname = 'availabilities' GROUP BY i.relname, ix.indexrelid, ix.indisprimary, ix.indisunique, ix.indkey ORDER BY i.relname;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "schedules"."scheduleId", "schedules"."scheduleName", "schedules"."memo", "schedules"."createdBy", "schedules"."updatedAt", "user"."userId" AS "user.userId", "user"."username" AS "user.username" FROM "schedules" AS "schedules" LEFT OUTER JOIN "users" AS "user" ON "schedules"."createdBy" = "user"."userId" WHERE "schedules"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8' ORDER BY "schedules"."updatedAt" DESC;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8' ORDER BY "candidates"."candidateId" ASC;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "availabilities"."candidateId", "availabilities"."userId", "availabilities"."availability", "availabilities"."scheduleId", "user"."userId" AS "user.userId", "user"."username" AS "user.username" FROM "availabilities" AS "availabilities" LEFT OUTER JOIN "users" AS "user" ON "availabilities"."userId" = "user"."userId" WHERE "availabilities"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8' ORDER BY "user"."username" ASC, "availabilities"."candidateId" ASC;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+GET /schedules/f5738ea2-0858-4b40-ab89-b6d5fa58abe8 200 171.139 ms - 2127
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 21
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 22
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 1)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 23
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 2)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "schedules" WHERE "scheduleId" = 'f5738ea2-0858-4b40-ab89-b6d5fa58abe8'
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "users" ("userId","username") VALUES ($1,$2) ON CONFLICT ("userId") DO UPDATE SET "userId"=EXCLUDED."userId","username"=EXCLUDED."username" RETURNING "userId","username";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "schedules" ("scheduleId","scheduleName","memo","createdBy","updatedAt") VALUES ($1,$2,$3,$4,$5) RETURNING "scheduleId","scheduleName","memo","createdBy","updatedAt";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テスト出欠更新候補1','196de33f-8061-4dfc-8bc8-2d8748637c31') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules 302 22.111 ms - 69
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31' LIMIT 1;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "availabilities" ("candidateId","userId","availability","scheduleId") VALUES ($1,$2,$3,$4) ON CONFLICT ("candidateId","userId") DO UPDATE SET "scheduleId"=EXCLUDED."scheduleId","userId"=EXCLUDED."userId","candidateId"=EXCLUDED."candidateId","availability"=EXCLUDED."availability" RETURNING "candidateId","userId","availability","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/196de33f-8061-4dfc-8bc8-2d8748637c31/users/0/candidates/24 200 16.879 ms - 32
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "availabilities" WHERE "candidateId" = 24 AND "userId" = 0
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 24
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "schedules" WHERE "scheduleId" = '196de33f-8061-4dfc-8bc8-2d8748637c31'
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "users" ("userId","username") VALUES ($1,$2) ON CONFLICT ("userId") DO UPDATE SET "userId"=EXCLUDED."userId","username"=EXCLUDED."username" RETURNING "userId","username";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "schedules" ("scheduleId","scheduleName","memo","createdBy","updatedAt") VALUES ($1,$2,$3,$4,$5) RETURNING "scheduleId","scheduleName","memo","createdBy","updatedAt";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テストコメント更新候補1','966a20a0-a094-4165-bc92-3efbcd6569be') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules 302 19.342 ms - 69
+  console.log
+    Executing (default): INSERT INTO "comments" ("scheduleId","userId","comment") VALUES ($1,$2,$3) ON CONFLICT ("scheduleId","userId") DO UPDATE SET "scheduleId"=EXCLUDED."scheduleId","userId"=EXCLUDED."userId","comment"=EXCLUDED."comment" RETURNING "scheduleId","userId","comment";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/966a20a0-a094-4165-bc92-3efbcd6569be/users/0/comments 200 14.001 ms - 39
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "comments" WHERE "scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be' AND "userId" = 0
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 25
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "schedules" WHERE "scheduleId" = '966a20a0-a094-4165-bc92-3efbcd6569be'
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "users" ("userId","username") VALUES ($1,$2) ON CONFLICT ("userId") DO UPDATE SET "userId"=EXCLUDED."userId","username"=EXCLUDED."username" RETURNING "userId","username";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "schedules" ("scheduleId","scheduleName","memo","createdBy","updatedAt") VALUES ($1,$2,$3,$4,$5) RETURNING "scheduleId","scheduleName","memo","createdBy","updatedAt";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テスト更新候補1','b86eaab4-1acb-4481-b614-4e5e9be96aeb') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules 302 15.427 ms - 69
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): UPDATE "schedules" SET "scheduleName"=$1,"memo"=$2,"updatedAt"=$3 WHERE "scheduleId" = $4
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テスト更新候補2','b86eaab4-1acb-4481-b614-4e5e9be96aeb') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/b86eaab4-1acb-4481-b614-4e5e9be96aeb?edit=1 302 22.526 ms - 69
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb' ORDER BY "candidates"."candidateId" ASC;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 26
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 27
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 1)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "schedules" WHERE "scheduleId" = 'b86eaab4-1acb-4481-b614-4e5e9be96aeb'
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "users" ("userId","username") VALUES ($1,$2) ON CONFLICT ("userId") DO UPDATE SET "userId"=EXCLUDED."userId","username"=EXCLUDED."username" RETURNING "userId","username";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "schedules" ("scheduleId","scheduleName","memo","createdBy","updatedAt") VALUES ($1,$2,$3,$4,$5) RETURNING "scheduleId","scheduleName","memo","createdBy","updatedAt";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "candidates" ("candidateId","candidateName","scheduleId") VALUES (DEFAULT,'テスト削除候補1','f7defed4-3fb8-4d52-9e92-c1eeb174c1ec') RETURNING "candidateId","candidateName","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules 302 19.330 ms - 69
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec' LIMIT 1;
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): INSERT INTO "availabilities" ("candidateId","userId","availability","scheduleId") VALUES ($1,$2,$3,$4) ON CONFLICT ("candidateId","userId") DO UPDATE SET "scheduleId"=EXCLUDED."scheduleId","userId"=EXCLUDED."userId","candidateId"=EXCLUDED."candidateId","availability"=EXCLUDED."availability" RETURNING "candidateId","userId","availability","scheduleId";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/f7defed4-3fb8-4d52-9e92-c1eeb174c1ec/users/0/candidates/28 200 57.599 ms - 32
+  console.log
+    Executing (default): INSERT INTO "comments" ("scheduleId","userId","comment") VALUES ($1,$2,$3) ON CONFLICT ("scheduleId","userId") DO UPDATE SET "scheduleId"=EXCLUDED."scheduleId","userId"=EXCLUDED."userId","comment"=EXCLUDED."comment" RETURNING "scheduleId","userId","comment";
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/f7defed4-3fb8-4d52-9e92-c1eeb174c1ec/users/0/comments 200 13.614 ms - 39
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "comments" WHERE "scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec' AND "userId" = 0
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "availabilities" WHERE "candidateId" = 28 AND "userId" = 0
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "candidates" WHERE "candidateId" = 28
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+          at async Promise.all (index 0)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): DELETE FROM "schedules" WHERE "scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec'
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+POST /schedules/f7defed4-3fb8-4d52-9e92-c1eeb174c1ec?delete=1 302 100.901 ms - 23
+  console.log
+    Executing (default): SELECT "scheduleId", "userId", "comment" FROM "comments" AS "comments" WHERE "comments"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "userId", "availability", "scheduleId" FROM "availabilities" AS "availabilities" WHERE "availabilities"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "candidateId", "candidateName", "scheduleId" FROM "candidates" AS "candidates" WHERE "candidates"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+  console.log
+    Executing (default): SELECT "scheduleId", "scheduleName", "memo", "createdBy", "updatedAt" FROM "schedules" AS "schedules" WHERE "schedules"."scheduleId" = 'f7defed4-3fb8-4d52-9e92-c1eeb174c1ec';
+
+      at Sequelize.log (node_modules/sequelize/lib/sequelize.js:1177:15)
+
+ PASS  test/test.js
+  /login
+    ✓ ログインのためのリンクが含まれる (590 ms)
+    ✓ ログイン時はユーザー名が表示される (69 ms)
+  /logout
+    ✓ / にリダイレクトされる (136 ms)
+  /schedules
+    ✓ 予定が作成でき、表示される (594 ms)
+  /schedules/:scheduleId/users/:userId/candidates/:candidateId
+    ✓ 出欠が更新できる (90 ms)
+  /schedules/:scheduleId/users/:userId/comments
+    ✓ コメントが更新できる (56 ms)
+  /schedules/:scheduleId?edit=1
+    ✓ 予定が更新でき、候補が追加できる (70 ms)
+  /schedules/:scheduleId?delete=1
+    ✓ 予定に関連する全ての情報が削除できる (267 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        4.201 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+Done in 5.51s.
