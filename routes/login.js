@@ -7,7 +7,7 @@ router.get('/', (req, res, next) => {
   if (from) {
     res.cookie('loginFrom', from, { expires: new Date(Date.now() + 600000) });
   }
-  res.render('login');
+  res.render('login', { user: req.user });
 });
 
 module.exports = router;
