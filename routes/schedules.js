@@ -9,11 +9,24 @@ const User = require('../models/user');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
 
-router.get('/new', authenticationEnsurer, (req, res, next) => {
-  res.render('new', { user: req.user });
+/*
+  予定新先作成フォームを表示する時.予定編集フォームを表示する時にcsrfトークンを渡しています
+  csrfProtection->csrfトークンチェック用だと思います.
+  新規作成フォーム表示時.新規作成フォームpost送信時.スケジュール詳細画面表示時.予定編集フォーム表示時.予定編集フォームpost送信時
+  にcsrfProtectionでチェックしてるけどpost送信じゃない時にチェックする意味が分からない
+*/
+// csrf脆弱性対策
+const csrf = require('csurf');
+const csrfProtection = csrf({ cookie: true });
+
+// 新規作成するフォームでcsrfトークンチェックする
+router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
+  // csrfトークンを渡す
+  res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
-router.post('/', authenticationEnsurer, async (req, res, next) => {
+// スケジュール作成を保存するエンドポイントでcsrfトークンをチェックする
+router.post('/', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   const scheduleId = uuidv4();
   const updatedAt = new Date();
   await Schedule.create({
@@ -26,7 +39,8 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
   createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res);
 });
 
-router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
+// スケジュール詳細画面でcsrfトークンチェックする
+router.get('/:scheduleId', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   const schedule = await Schedule.findOne({
     include: [
       {
@@ -111,7 +125,8 @@ router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
   }
 });
 
-router.get('/:scheduleId/edit', authenticationEnsurer, async (req, res, next) => {
+// 予定編集フォームでcsrfトークンをチェックする
+router.get('/:scheduleId/edit', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   const schedule = await Schedule.findOne({
     where: {
       scheduleId: req.params.scheduleId
@@ -125,7 +140,8 @@ router.get('/:scheduleId/edit', authenticationEnsurer, async (req, res, next) =>
     res.render('edit', {
       user: req.user,
       schedule: schedule,
-      candidates: candidates
+      candidates: candidates,
+      csrfToken: req.csrfToken()
     });
   } else {
     const err = new Error('指定された予定がない、または、予定する権限がありません');
@@ -138,7 +154,8 @@ function isMine(req, schedule) {
   return schedule && parseInt(schedule.createdBy) === parseInt(req.user.id);
 }
 
-router.post('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
+// post送信時にcsrfトークンをチェックする
+router.post('/:scheduleId', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   let schedule = await Schedule.findOne({
     where: {
       scheduleId: req.params.scheduleId
