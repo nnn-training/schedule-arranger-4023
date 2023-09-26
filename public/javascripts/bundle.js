@@ -19017,6 +19017,26 @@ jquery__WEBPACK_IMPORTED_MODULE_0___default()('#new-schedule-button').on('click'
     return confirmation; // falseを返すとクリックのデフォルト挙動とイベント伝播を防ぐ
   }
 });
+
+jquery__WEBPACK_IMPORTED_MODULE_0___default()('#delete-schedule-button').on('click', function (clickEvent) {
+  var scheduleName = jquery__WEBPACK_IMPORTED_MODULE_0___default()('#scheduleName').attr('value'); // .val() だと入力中の未確定の名前を取得する
+  var button = jquery__WEBPACK_IMPORTED_MODULE_0___default()(clickEvent.target);
+  var numCandidates = button.data('num-candidates');
+  var numUsers = button.data('num-users');
+  var promptText;
+  if (numCandidates > 0) {
+    if (numUsers > 0) {
+      promptText = "".concat(numCandidates, "\u4EF6\u306E\u5019\u88DC\u65E5\u7A0B\u304C\u5B58\u5728\u3057\u3001\u65E2\u306B").concat(numUsers, "\u4EBA\u304C\u51FA\u6B20\u3092\u8868\u660E\u3057\u3066\u3044\u307E\u3059\u3002");
+    } else {
+      promptText = "\u307E\u3060\u51FA\u6B20\u3092\u8868\u660E\u3057\u3066\u3044\u308B\u4EBA\u306F\u3044\u307E\u305B\u3093\u304C\u3001".concat(numCandidates, "\u4EF6\u306E\u5019\u88DC\u65E5\u7A0B\u304C\u5B58\u5728\u3057\u307E\u3059\u3002");
+    }
+    promptText = "\u4E88\u5B9A \"".concat(scheduleName, "\" \u306B\u306F\u3001").concat(promptText, "\n\u3053\u306E\u4E88\u5B9A\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F");
+  } else {
+    promptText = "\u4E88\u5B9A \"".concat(scheduleName, "\" \u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F");
+  }
+  var confirmation = confirm(promptText);
+  return confirmation;
+});
 })();
 
 /******/ })()

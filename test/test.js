@@ -205,6 +205,54 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 });
 
+describe('/schedules/:scheduleId/edit', () => {
+  let scheduleId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    await deleteScheduleAggregate(scheduleId);
+  });
+
+  test('予定削除ボタンに正しい data 属性が付与される', async () => {
+    await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
+    const res = await request(app)
+      .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
+      .send({
+        scheduleName: 'テストボタン予定1',
+        memo: 'テストボタンメモ1',
+        candidates: 'テストボタン候補1\nテストボタン候補2\nテストボタン候補3'
+      })
+    const createdSchedulePath = res.headers.location;
+    scheduleId = createdSchedulePath.split('/schedules/')[1];
+
+    // 出欠作成
+    const candidate = await Candidate.findOne({ // 候補1を取得
+      where: { scheduleId: scheduleId },
+      order: [['candidateId', 'ASC']]
+    });
+    await request(app) // 候補1を出席に更新
+      .post(`/schedules/${scheduleId}/users/${0}/candidates/${candidate.candidateId}`)
+      .send({ availability: 2 });
+    await request(app) // 候補3を不明に更新
+      .post(`/schedules/${scheduleId}/users/${0}/candidates/${candidate.candidateId + 2}`)
+      .send({ availability: 1 });
+
+    // 削除ボタンのdata属性をテスト
+    // window.confirm() を直接テストするのはめちゃくそ面倒（無理かも）なので、今回はこれで妥協
+    await request(app)
+      .get(`/schedules/${scheduleId}/edit`)
+      .expect(/data-num-candidates="3"/)
+      .expect(/data-num-users="1"/);
+  });
+});
+
 describe('/schedules/:scheduleId?delete=1', () => {
   beforeAll(() => {
     passportStub.install(app);

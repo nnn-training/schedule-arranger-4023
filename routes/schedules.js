@@ -125,10 +125,15 @@ router.get('/:scheduleId/edit', authenticationEnsurer, csrfProtection, async (re
       where: { scheduleId: schedule.scheduleId },
       order: [['candidateId', 'ASC']]
     });
+    // 出欠表明者の人数だけ知りたい
+    // その予定のすべての出欠→ユーザーIDの配列→重複を排除→要素数を取得
+    const availabilities = await Availability.findAll({ where: { scheduleId: schedule.scheduleId } });
+    const numUsers = new Set(availabilities.map(a => a.userId)).size;
     res.render('edit', {
       user: req.user,
       schedule: schedule,
       candidates: candidates,
+      numUsers: numUsers,
       csrfToken: req.csrfToken()
     });
   } else {
