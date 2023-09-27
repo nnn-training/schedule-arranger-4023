@@ -8,12 +8,15 @@ const Candidate = require('../models/candidate');
 const User = require('../models/user');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
+const csrf = require('csurf');
+const parseCandidateNames = require('../app/util');
+const csrfProtection = csrf({ cookie: true });
 
-router.get('/new', authenticationEnsurer, (req, res, next) => {
-  res.render('new', { user: req.user });
+router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
+  res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
-router.post('/', authenticationEnsurer, async (req, res, next) => {
+router.post('/', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   const scheduleId = uuidv4();
   const updatedAt = new Date();
   await Schedule.create({
@@ -23,7 +26,7 @@ router.post('/', authenticationEnsurer, async (req, res, next) => {
     createdBy: req.user.id,
     updatedAt: updatedAt
   });
-  createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res);
+  createCandidatesAndRedirect(parseCandidateNames(req.body.candidates), scheduleId, res);
 });
 
 router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
@@ -111,7 +114,7 @@ router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
   }
 });
 
-router.get('/:scheduleId/edit', authenticationEnsurer, async (req, res, next) => {
+router.get('/:scheduleId/edit', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   const schedule = await Schedule.findOne({
     where: {
       scheduleId: req.params.scheduleId
@@ -122,10 +125,16 @@ router.get('/:scheduleId/edit', authenticationEnsurer, async (req, res, next) =>
       where: { scheduleId: schedule.scheduleId },
       order: [['candidateId', 'ASC']]
     });
+    // 出欠表明者の人数だけ知りたい
+    // その予定のすべての出欠→ユーザーIDの配列→重複を排除→要素数を取得
+    const availabilities = await Availability.findAll({ where: { scheduleId: schedule.scheduleId } });
+    const numUsers = new Set(availabilities.map(a => a.userId)).size;
     res.render('edit', {
       user: req.user,
       schedule: schedule,
-      candidates: candidates
+      candidates: candidates,
+      numUsers: numUsers,
+      csrfToken: req.csrfToken()
     });
   } else {
     const err = new Error('指定された予定がない、または、予定する権限がありません');
@@ -138,7 +147,7 @@ function isMine(req, schedule) {
   return schedule && parseInt(schedule.createdBy) === parseInt(req.user.id);
 }
 
-router.post('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
+router.post('/:scheduleId', authenticationEnsurer, csrfProtection, async (req, res, next) => {
   let schedule = await Schedule.findOne({
     where: {
       scheduleId: req.params.scheduleId
@@ -155,8 +164,8 @@ router.post('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
         updatedAt: updatedAt
       });
       // 追加されているかチェック
-      const candidateNames = parseCandidateNames(req);
-      if (candidateNames) {
+      const candidateNames = parseCandidateNames(req.body.candidates);
+      if (candidateNames.length > 0) {
         createCandidatesAndRedirect(candidateNames, schedule.scheduleId, res);
       } else {
         res.redirect('/schedules/' + schedule.scheduleId);
@@ -208,10 +217,6 @@ async function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
   });
   await Candidate.bulkCreate(candidates)
   res.redirect('/schedules/' + scheduleId);
-}
-
-function parseCandidateNames(req) {
-  return req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
 }
 
 module.exports = router;

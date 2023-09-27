@@ -19,5 +19,6 @@ module.exports = {
         }
       }
     ]
-  }
+  },
+  devtool: 'source-map' // ChromeのDevToolsの警告回避
 };

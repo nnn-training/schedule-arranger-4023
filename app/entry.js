@@ -2,6 +2,7 @@
 import $ from 'jquery';
 globalThis.jQuery = $;
 import bootstrap from 'bootstrap';
+import parseCandidateNames from './util';
 
 $('.availability-toggle-button').each((i, e) => {
   const button = $(e);
@@ -37,4 +38,32 @@ buttonSelfComment.on('click', () => {
         $('#self-comment').text(data.comment);
       });
   }
+});
+
+$('#new-schedule-button').on('click', () => {
+  const candidateNames = parseCandidateNames($('#candidates').val());
+  if (candidateNames.length === 0) {
+    const confirmation = confirm('候補日程が指定されていません。続けますか？');
+    return confirmation; // falseを返すとクリックのデフォルト挙動とイベント伝播を防ぐ
+  }
+});
+
+$('#delete-schedule-button').on('click', clickEvent => {
+  const scheduleName = $('#scheduleName').attr('value'); // .val() だと入力中の未確定の名前を取得する
+  const button = $(clickEvent.target);
+  const numCandidates = button.data('num-candidates');
+  const numUsers = button.data('num-users');
+  let promptText;
+  if (numCandidates > 0) {
+    if (numUsers > 0) {
+      promptText = `${numCandidates}件の候補日程が存在し、既に${numUsers}人が出欠を表明しています。`;
+    } else {
+      promptText = `まだ出欠を表明している人はいませんが、${numCandidates}件の候補日程が存在します。`;
+    }
+    promptText = `予定 "${scheduleName}" には、${promptText}\nこの予定を削除しますか？`;
+  } else {
+    promptText = `予定 "${scheduleName}" を削除しますか？`;
+  }
+  const confirmation = confirm(promptText);
+  return confirmation;
 });

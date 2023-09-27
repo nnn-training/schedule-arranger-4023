@@ -60,8 +60,10 @@ describe('/schedules', () => {
 
   test('予定が作成でき、表示される', async () => {
     await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
     const res = await request(app)
       .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({
         scheduleName: 'テスト予定1',
         memo: 'テストメモ1\r\nテストメモ2',
@@ -99,8 +101,10 @@ describe('/schedules/:scheduleId/users/:userId/candidates/:candidateId', () => {
 
   test('出欠が更新できる', async () => {
     await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
     const res = await request(app)
       .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({ scheduleName: 'テスト出欠更新予定1', memo: 'テスト出欠更新メモ1', candidates: 'テスト出欠更新候補1' })
     const createdSchedulePath = res.headers.location;
     scheduleId = createdSchedulePath.split('/schedules/')[1];
@@ -136,8 +140,10 @@ describe('/schedules/:scheduleId/users/:userId/comments', () => {
 
   test('コメントが更新できる', async () => {
     await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
     const res = await request(app)
       .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({
         scheduleName: 'テストコメント更新予定1',
         memo: 'テストコメント更新メモ1',
@@ -174,14 +180,17 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
   test('予定が更新でき、候補が追加できる', async () => {
     await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
     const res = await request(app)
       .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({ scheduleName: 'テスト更新予定1', memo: 'テスト更新メモ1', candidates: 'テスト更新候補1' })
     const createdSchedulePath = res.headers.location;
     scheduleId = createdSchedulePath.split('/schedules/')[1];
     // 更新がされることをテスト
     await request(app)
       .post(`/schedules/${scheduleId}?edit=1`)
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({ scheduleName: 'テスト更新予定2', memo: 'テスト更新メモ2', candidates: 'テスト更新候補2' })
     const s = await Schedule.findByPk(scheduleId);
     expect(s.scheduleName).toBe('テスト更新予定2');
@@ -193,6 +202,54 @@ describe('/schedules/:scheduleId?edit=1', () => {
     expect(candidates.length).toBe(2);
     expect(candidates[0].candidateName).toBe('テスト更新候補1');
     expect(candidates[1].candidateName).toBe('テスト更新候補2');
+  });
+});
+
+describe('/schedules/:scheduleId/edit', () => {
+  let scheduleId = '';
+  beforeAll(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+
+  afterAll(async () => {
+    passportStub.logout();
+    passportStub.uninstall();
+    await deleteScheduleAggregate(scheduleId);
+  });
+
+  test('予定削除ボタンに正しい data 属性が付与される', async () => {
+    await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
+    const res = await request(app)
+      .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
+      .send({
+        scheduleName: 'テストボタン予定1',
+        memo: 'テストボタンメモ1',
+        candidates: 'テストボタン候補1\nテストボタン候補2\nテストボタン候補3'
+      })
+    const createdSchedulePath = res.headers.location;
+    scheduleId = createdSchedulePath.split('/schedules/')[1];
+
+    // 出欠作成
+    const candidate = await Candidate.findOne({ // 候補1を取得
+      where: { scheduleId: scheduleId },
+      order: [['candidateId', 'ASC']]
+    });
+    await request(app) // 候補1を出席に更新
+      .post(`/schedules/${scheduleId}/users/${0}/candidates/${candidate.candidateId}`)
+      .send({ availability: 2 });
+    await request(app) // 候補3を不明に更新
+      .post(`/schedules/${scheduleId}/users/${0}/candidates/${candidate.candidateId + 2}`)
+      .send({ availability: 1 });
+
+    // 削除ボタンのdata属性をテスト
+    // window.confirm() を直接テストするのはめちゃくそ面倒（無理かも）なので、今回はこれで妥協
+    await request(app)
+      .get(`/schedules/${scheduleId}/edit`)
+      .expect(/data-num-candidates="3"/)
+      .expect(/data-num-users="1"/);
   });
 });
 
@@ -209,8 +266,10 @@ describe('/schedules/:scheduleId?delete=1', () => {
 
   test('予定に関連する全ての情報が削除できる', async () => {
     await User.upsert({ userId: 0, username: 'testuser' });
+    const { csrfToken, cookies } = await getCsrfTokenPair();
     const res = await request(app)
       .post('/schedules')
+      .set({ 'csrf-token': csrfToken, Cookie: cookies })
       .send({ scheduleName: 'テスト削除予定1', memo: 'テスト削除メモ1', candidates: 'テスト削除候補1' })
     const createdSchedulePath = res.headers.location;
     const scheduleId = createdSchedulePath.split('/schedules/')[1];
@@ -231,7 +290,8 @@ describe('/schedules/:scheduleId?delete=1', () => {
 
     // 削除
     await request(app)
-      .post(`/schedules/${scheduleId}?delete=1`);
+      .post(`/schedules/${scheduleId}?delete=1`)
+      .set({ 'csrf-token': csrfToken, Cookie: cookies });
 
     // テスト
     const comments = await Comment.findAll({
@@ -250,3 +310,11 @@ describe('/schedules/:scheduleId?delete=1', () => {
     expect(!schedule).toBe(true);
   });
 });
+
+async function getCsrfTokenPair() {
+  const res = await request(app)
+    .get('/schedules/new');
+  const csrfToken = res.text.match(/name="_csrf" value="(.+?)"/)[1];
+  const cookies = res.headers['set-cookie'];
+  return { csrfToken, cookies };
+}
