@@ -9,6 +9,7 @@ const User = require('../models/user');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
 const csrf = require('csurf');
+const parseCandidateNames = require('../app/util');
 const csrfProtection = csrf({ cookie: true });
 
 router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
@@ -25,7 +26,7 @@ router.post('/', authenticationEnsurer, csrfProtection, async (req, res, next) =
     createdBy: req.user.id,
     updatedAt: updatedAt
   });
-  createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res);
+  createCandidatesAndRedirect(parseCandidateNames(req.body.candidates), scheduleId, res);
 });
 
 router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
@@ -158,7 +159,7 @@ router.post('/:scheduleId', authenticationEnsurer, csrfProtection, async (req, r
         updatedAt: updatedAt
       });
       // 追加されているかチェック
-      const candidateNames = parseCandidateNames(req);
+      const candidateNames = parseCandidateNames(req.body.candidates);
       if (candidateNames.length > 0) {
         createCandidatesAndRedirect(candidateNames, schedule.scheduleId, res);
       } else {
@@ -211,10 +212,6 @@ async function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
   });
   await Candidate.bulkCreate(candidates)
   res.redirect('/schedules/' + scheduleId);
-}
-
-function parseCandidateNames(req) {
-  return req.body.candidates.trim().split('\n').map((s) => s.trim()).filter((s) => s !== "");
 }
 
 module.exports = router;

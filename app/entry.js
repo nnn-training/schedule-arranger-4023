@@ -2,6 +2,7 @@
 import $ from 'jquery';
 globalThis.jQuery = $;
 import bootstrap from 'bootstrap';
+import parseCandidateNames from './util';
 
 $('.availability-toggle-button').each((i, e) => {
   const button = $(e);
@@ -36,5 +37,13 @@ buttonSelfComment.on('click', () => {
       (data) => {
         $('#self-comment').text(data.comment);
       });
+  }
+});
+
+$('#new-schedule-button').on('click', () => {
+  const candidateNames = parseCandidateNames($('#candidates').val());
+  if (candidateNames.length === 0) {
+    const confirmation = confirm('候補日程が指定されていません。続けますか？');
+    return confirmation; // falseを返すとクリックのデフォルト挙動とイベント伝播を防ぐ
   }
 });

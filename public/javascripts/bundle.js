@@ -18876,6 +18876,22 @@ var createPopper = /*#__PURE__*/(0,_createPopper_js__WEBPACK_IMPORTED_MODULE_4__
 
 
 
+/***/ }),
+/* 61 */
+/***/ ((module) => {
+
+"use strict";
+
+
+function parseCandidateNames(candidates) {
+  return candidates.trim().split('\n').map(function (s) {
+    return s.trim();
+  }).filter(function (s) {
+    return s !== "";
+  });
+}
+module.exports = parseCandidateNames;
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -18953,10 +18969,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var bootstrap__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
+/* harmony import */ var _util__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(61);
+/* harmony import */ var _util__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_util__WEBPACK_IMPORTED_MODULE_2__);
 
 
 
 globalThis.jQuery = (jquery__WEBPACK_IMPORTED_MODULE_0___default());
+
 
 jquery__WEBPACK_IMPORTED_MODULE_0___default()('.availability-toggle-button').each(function (i, e) {
   var button = jquery__WEBPACK_IMPORTED_MODULE_0___default()(e);
@@ -18989,6 +19008,13 @@ buttonSelfComment.on('click', function () {
     }, function (data) {
       jquery__WEBPACK_IMPORTED_MODULE_0___default()('#self-comment').text(data.comment);
     });
+  }
+});
+jquery__WEBPACK_IMPORTED_MODULE_0___default()('#new-schedule-button').on('click', function () {
+  var candidateNames = _util__WEBPACK_IMPORTED_MODULE_2___default()(jquery__WEBPACK_IMPORTED_MODULE_0___default()('#candidates').val());
+  if (candidateNames.length === 0) {
+    var confirmation = confirm('候補日程が指定されていません。続けますか？');
+    return confirmation; // falseを返すとクリックのデフォルト挙動とイベント伝播を防ぐ
   }
 });
 })();
