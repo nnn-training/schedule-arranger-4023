@@ -13,6 +13,7 @@ block content
   - const isMine = parseInt(user.id) === schedule.user.userId
   if isMine
     a.btn.btn-primary(href=`/schedules/${schedule.scheduleId}/edit`) この予定を編集する
+    a.btn.btn-primary(href=`/`) 更新する
   h3.my-3 出欠表
   div.table-responsive
     table.table.table-bordered
