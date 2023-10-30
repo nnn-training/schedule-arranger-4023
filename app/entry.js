@@ -42,5 +42,18 @@ buttonSelfComment.on('click', () => {
         $('#self-comment').text(data.comment)
       }
     )
+
+    const shareUrl = window.location.href
+    const shareUrlInput = $('#share-url')
+    const shareUrlCopyButton = $('#copy-button')
+
+    shareUrlInput.val(shareUrl)
+
+    shareUrlCopyButton.on('click', () => {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        shareUrlCopyButton.text('Copied!')
+        setTimeout(() => shareUrlCopyButton.text('Copy'), 1000)
+      })
+    })
   }
 })
