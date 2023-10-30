@@ -1,86 +1,71 @@
 'use strict'
 const express = require('express')
 const router = express.Router()
-const { param, body, validationResult } = require('express-validator')
 const authenticationEnsurer = require('./authentication-ensurer')
 const { v4: uuidv4 } = require('uuid')
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient({ log: ['query'] })
+const Schedule = require('../models/schedule')
+const Candidate = require('../models/candidate')
+const User = require('../models/user')
+const Availability = require('../models/availability')
+const Comment = require('../models/comment')
+const csrf = require('csurf')
+const csrfProtection = csrf({ cookie: true })
 
-router.get('/new', authenticationEnsurer, (req, res, next) => {
+router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
   res.render('new', { user: req.user, csrfToken: req.csrfToken() })
 })
 
-router.post('/', authenticationEnsurer, async (req, res, next) => {
-  await body('scheduleName').isString().run(req)
-  await body('candidates').isString().run(req)
-  await body('memo').isString().run(req)
-  const errors = validationResult(req)
-
-  if (!errors.isEmpty()) {
-    const err = new Error('入力された情報が不十分または正しくありません。')
-    err.status = 400
-    return next(err)
-  }
-
-  const scheduleId = uuidv4()
-  const updatedAt = new Date()
-  const schedule = await prisma.schedule.create({
-    data: {
+router.post(
+  '/',
+  authenticationEnsurer,
+  csrfProtection,
+  async (req, res, next) => {
+    const scheduleId = uuidv4()
+    const updatedAt = new Date()
+    await Schedule.create({
       scheduleId: scheduleId,
       scheduleName: req.body.scheduleName.slice(0, 255) || '（名称未設定）',
       memo: req.body.memo,
-      createdBy: parseInt(req.user.id),
+      createdBy: req.user.id,
       updatedAt: updatedAt,
-    },
-  })
-  await createCandidatesAndRedirect(
-    parseCandidateNames(req),
-    schedule.scheduleId,
-    res
-  )
-})
+    })
+    createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res)
+  }
+)
 
 router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
-  await param('scheduleId').isUUID('4').run(req)
-  const errors = validationResult(req)
-
-  if (!errors.isEmpty()) {
-    const err = new Error('URL の形式が正しくありません。')
-    err.status = 400
-    return next(err)
-  }
-
-  const schedule = await prisma.schedule.findUnique({
-    where: { scheduleId: req.params.scheduleId },
-    include: {
-      user: {
-        select: {
-          userId: true,
-          username: true,
-        },
+  const schedule = await Schedule.findOne({
+    include: [
+      {
+        model: User,
+        attributes: ['userId', 'username'],
       },
+    ],
+    where: {
+      scheduleId: req.params.scheduleId,
     },
+    order: [['updatedAt', 'DESC']],
   })
   if (schedule) {
-    const candidates = await prisma.candidate.findMany({
+    const candidates = await Candidate.findAll({
       where: { scheduleId: schedule.scheduleId },
-      orderBy: { candidateId: 'asc' },
+      order: [['candidateId', 'ASC']],
     })
     // データベースからその予定の全ての出欠を取得する
-    const availabilities = await prisma.availability.findMany({
-      where: { scheduleId: schedule.scheduleId },
-      orderBy: { candidateId: 'asc' },
-      include: {
-        user: {
-          select: {
-            userId: true,
-            username: true,
-          },
+    const availabilities = await Availability.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['userId', 'username'],
         },
-      },
+      ],
+      where: { scheduleId: schedule.scheduleId },
+      order: [
+        [User, 'username', 'ASC'],
+        ['candidateId', 'ASC'],
+      ],
     })
-    // 出欠 MapMap を作成する
+    // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠)) を作成する
     const availabilityMapMap = new Map() // key: userId, value: Map(key: candidateId, value: availability)
     availabilities.forEach((a) => {
       const map = availabilityMapMap.get(a.user.userId) || new Map()
@@ -88,7 +73,7 @@ router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
       availabilityMapMap.set(a.user.userId, map)
     })
 
-    // 閲覧ユーザと出欠に紐づくユーザからユーザ Map を作る
+    // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map (キー:ユーザー ID, 値:ユーザー) を作る
     const userMap = new Map() // key: userId, value: User
     userMap.set(parseInt(req.user.id), {
       isSelf: true,
@@ -97,32 +82,31 @@ router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
     })
     availabilities.forEach((a) => {
       userMap.set(a.user.userId, {
-        isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザ自身であるかを示す真偽値
+        isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
         userId: a.user.userId,
         username: a.user.username,
       })
     })
 
-    // 全ユーザ、全候補で二重ループしてそれぞれの出欠の値がない場合には、「欠席」を設定する
-    const users = Array.from(userMap.values())
+    // 全ユーザー、全候補で二重ループしてそれぞれの出欠の値がない場合には、「欠席」を設定する
+    const users = Array.from(userMap).map((keyValue) => keyValue[1])
     users.forEach((u) => {
       candidates.forEach((c) => {
         const map = availabilityMapMap.get(u.userId) || new Map()
-        const a = map.get(c.candidateId) || 0 // デフォルト値は 0 を使用
+        const a = map.get(c.candidateId) || 0 // デフォルト値は 0 を利用
         map.set(c.candidateId, a)
         availabilityMapMap.set(u.userId, map)
       })
     })
 
     // コメント取得
-    const comments = await prisma.comment.findMany({
+    const comments = await Comment.findAll({
       where: { scheduleId: schedule.scheduleId },
     })
     const commentMap = new Map() // key: userId, value: comment
     comments.forEach((comment) => {
       commentMap.set(comment.userId, comment.comment)
     })
-
     res.render('schedule', {
       user: req.user,
       schedule: schedule,
@@ -141,24 +125,18 @@ router.get('/:scheduleId', authenticationEnsurer, async (req, res, next) => {
 router.get(
   '/:scheduleId/edit',
   authenticationEnsurer,
+  csrfProtection,
   async (req, res, next) => {
-    await param('scheduleId').isUUID('4').run(req)
-    const errors = validationResult(req)
-
-    if (!errors.isEmpty()) {
-      const err = new Error('URL の形式が正しくありません。')
-      err.status = 400
-      return next(err)
-    }
-
-    const schedule = await prisma.schedule.findUnique({
-      where: { scheduleId: req.params.scheduleId },
+    const schedule = await Schedule.findOne({
+      where: {
+        scheduleId: req.params.scheduleId,
+      },
     })
     if (isMine(req, schedule)) {
       // 作成者のみが編集フォームを開ける
-      const candidates = await prisma.candidate.findMany({
+      const candidates = await Candidate.findAll({
         where: { scheduleId: schedule.scheduleId },
-        orderBy: { candidateId: 'asc' },
+        order: [['candidateId', 'ASC']],
       })
       res.render('edit', {
         user: req.user,
@@ -181,42 +159,39 @@ function isMine(req, schedule) {
 }
 
 router.post(
-  '/:scheduleId/update',
+  '/:scheduleId',
   authenticationEnsurer,
+  csrfProtection,
   async (req, res, next) => {
-    await param('scheduleId').isUUID('4').run(req)
-    await body('scheduleName').isString().run(req)
-    await body('candidates').isString().run(req)
-    await body('memo').isString().run(req)
-    const errors = validationResult(req)
-
-    if (!errors.isEmpty()) {
-      const err = new Error(
-        'URL の形式が正しくないか、入力された情報が不十分または正しくありません。'
-      )
-      err.status = 400
-      return next(err)
-    }
-
-    let schedule = await prisma.schedule.findUnique({
-      where: { scheduleId: req.params.scheduleId },
+    let schedule = await Schedule.findOne({
+      where: {
+        scheduleId: req.params.scheduleId,
+      },
     })
-    if (isMine(req, schedule)) {
-      const updatedAt = new Date()
-      schedule = await prisma.schedule.update({
-        where: { scheduleId: schedule.scheduleId },
-        data: {
+    if (schedule && isMine(req, schedule)) {
+      if (parseInt(req.query.edit) === 1) {
+        const updatedAt = new Date()
+        schedule = await schedule.update({
+          scheduleId: schedule.scheduleId,
           scheduleName: req.body.scheduleName.slice(0, 255) || '（名称未設定）',
           memo: req.body.memo,
+          createdBy: req.user.id,
           updatedAt: updatedAt,
-        },
-      })
-      // 候補が追加されているかチェック
-      const candidateNames = parseCandidateNames(req)
-      if (candidateNames.length) {
-        createCandidatesAndRedirect(candidateNames, schedule.scheduleId, res)
+        })
+        // 追加されているかチェック
+        const candidateNames = parseCandidateNames(req)
+        if (candidateNames) {
+          createCandidatesAndRedirect(candidateNames, schedule.scheduleId, res)
+        } else {
+          res.redirect('/schedules/' + schedule.scheduleId)
+        }
+      } else if (parseInt(req.query.delete) === 1) {
+        await deleteScheduleAggregate(req.params.scheduleId)
+        res.redirect('/')
       } else {
-        res.redirect('/schedules/' + schedule.scheduleId)
+        const err = new Error('不正なリクエストです')
+        err.status = 400
+        next(err)
       }
     } else {
       const err = new Error(
@@ -228,44 +203,53 @@ router.post(
   }
 )
 
-router.post(
-  '/:scheduleId/delete',
-  authenticationEnsurer,
-  async (req, res, next) => {
-    await param('scheduleId').isUUID('4').run(req)
-    const errors = validationResult(req)
-
-    if (!errors.isEmpty()) {
-      const err = new Error('URL の形式が正しくありません。')
-      err.status = 400
-      return next(err)
-    }
-
-    const schedule = await prisma.schedule.findUnique({
-      where: { scheduleId: req.params.scheduleId },
-    })
-    if (isMine(req, schedule)) {
-      await deleteScheduleAggregate(schedule.scheduleId)
-      res.redirect('/')
-    } else {
-      const err = new Error(
-        '指定された予定がない、または、削除する権限がありません'
-      )
-      err.status = 404
-      next(err)
-    }
-  }
-)
-
 async function deleteScheduleAggregate(scheduleId) {
-  await prisma.availability.deleteMany({ where: { scheduleId } })
-  await prisma.candidate.deleteMany({ where: { scheduleId } })
-  await prisma.comment.deleteMany({ where: { scheduleId } })
-  await prisma.schedule.delete({ where: { scheduleId } })
+  const comments = await Comment.findAll({
+    where: { scheduleId: scheduleId },
+  })
+  const promisesCommentDestroy = comments.map((c) => {
+    return c.destroy()
+  })
+  await Promise.all(promisesCommentDestroy)
+
+  const availabilities = await Availability.findAll({
+    where: { scheduleId: scheduleId },
+  })
+  const promisesAvailabilityDestroy = availabilities.map((a) => {
+    return a.destroy()
+  })
+  await Promise.all(promisesAvailabilityDestroy)
+  const candidates = await Candidate.findAll({
+    where: { scheduleId: scheduleId },
+  })
+  const promisesCandidateDestroy = candidates.map((c) => {
+    return c.destroy()
+  })
+  await Promise.all(promisesCandidateDestroy)
+  const s = await Schedule.findByPk(scheduleId)
+  await s.destroy()
 }
 
 router.deleteScheduleAggregate = deleteScheduleAggregate
 
+async function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
+  const candidates = candidateNames.map((c) => {
+    return {
+      candidateName: c,
+      scheduleId: scheduleId,
+    }
+  })
+  await Candidate.bulkCreate(candidates)
+  res.redirect('/schedules/' + scheduleId)
+}
+
+function parseCandidateNames(req) {
+  return req.body.candidates
+    .trim()
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+}
 async function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
   const candidates = candidateNames.map((c) => ({
     candidateName: c,
