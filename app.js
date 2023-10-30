@@ -11,8 +11,8 @@ const csurf = require('tiny-csrf')
 const prisma = new PrismaClient({ log: ['query'] })
 
 const GitHubStrategy = require('passport-github2').Strategy
-const GITHUB_CLIENT_ID = '2f831cb3d4aac02393aa'
-const GITHUB_CLIENT_SECRET = '9fbc340ac0175123695d2dedfbdf5a78df3b8067'
+const GITHUB_CLIENT_ID = '889ef96e15f772d2d618'
+const GITHUB_CLIENT_SECRET = 'a286b9bc8206e5db6a035aa8633f92331a783442'
 
 passport.serializeUser((user, done) => done(null, user))
 passport.deserializeUser((obj, done) => done(null, obj))
@@ -22,7 +22,9 @@ passport.use(
     {
       clientID: GITHUB_CLIENT_ID,
       clientSecret: GITHUB_CLIENT_SECRET,
-      callbackURL: 'http://localhost:8000/auth/github/callback',
+      callbackURL:
+        process.env.CALLBACK_URL ||
+        'http://localhost:8000/auth/github/callback',
     },
     (accessToken, refreshToken, profile, done) => {
       process.nextTick(async () => {
