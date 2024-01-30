@@ -12,7 +12,7 @@ router.post(
   async (req, res, next) => {
     await body('comment').isString().withMessage('コメントを入力してください。').run(req);
     await param('scheduleId').isUUID('4').withMessage('有効なスケジュールIDを指定してください。').run(req);
-    await param('userId'),isInt().custom((value, { req }) => {
+    await param('userId').isInt().custom((value, { req }) => {
       return parseInt(value) === parseInt(req.user.id);
     }).withMessage('ユーザーIDが不正です。').run(req);
     const errors = validationResult(req);
