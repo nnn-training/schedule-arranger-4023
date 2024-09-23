@@ -2,6 +2,7 @@
 import $ from "jquery";
 import "bootstrap/dist/js/bootstrap.min.js";
 import "bootstrap/dist/css/bootstrap.min.css";
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 $(".availability-toggle-button").each((i, e) => {
   const button = $(e);

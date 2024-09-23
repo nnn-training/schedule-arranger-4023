@@ -19,6 +19,7 @@ model User {
   availabilities Availability[]
   schedules      Schedule[]
   comments       Comment[]
+  Setting        Setting?
 
   @@map(name: "users")
 }
@@ -70,4 +71,19 @@ model Comment {
 
   @@id([scheduleId, userId], name: "commentCompositeId")
   @@map(name: "comments")
+}
+
+model Setting {
+  settingId Int       @id @default(autoincrement())
+  userId    Int       @unique
+  colorMode ColorMode
+  user      User      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index(fields: [userId])
+  @@map(name: "settings")
+}
+
+enum ColorMode {
+  light
+  dark
 }

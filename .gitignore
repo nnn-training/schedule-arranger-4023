@@ -2,5 +2,7 @@ node_modules/
 *.log
 .env
 yarn.lock
-public/javascripts/bundle.js
-public/stylesheets/bundle.css
+public/stylesheets/*
+public/javascripts/*
+public/*.woff
+public/*woff2

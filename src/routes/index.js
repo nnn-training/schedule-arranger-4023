@@ -3,6 +3,7 @@ const { html } = require("hono/html");
 const layout = require("../layout");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient({ log: ["query"] });
+const getColorMode = require("../utils/color-mode");
 
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -38,6 +39,9 @@ function scheduleTable(schedules) {
 
 app.get("/", async (c) => {
   const { user } = c.get("session") ?? {};
+  // light or dark
+  const colorMode = getColorMode(user);
+
   const schedules = user
     ? await prisma.schedule.findMany({
       where: { createdBy: user.id },
@@ -49,12 +53,12 @@ app.get("/", async (c) => {
   });
 
   return c.html(
-    layout(
+    await layout(
       c,
       null,
       html`
         <div class="my-3">
-          <div class="p-5 bg-light rounded-3">
+          <div class="p-5 bg-${colorMode} rounded-3">
             <h1 class="text-body">予定調整くん</h1>
             <p class="lead">
               予定調整くんは、GitHubで認証でき、予定を作って出欠が取れるサービスです。

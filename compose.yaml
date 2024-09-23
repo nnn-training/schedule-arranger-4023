@@ -2,6 +2,7 @@ services:
   app:
     build: .
     tty: true
+    init: true
     ports:
       - 3000:3000
     volumes:

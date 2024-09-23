@@ -30,6 +30,7 @@ async function sendFormRequest(app, path, body) {
     body: new URLSearchParams(body),
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
+      "Origin": "http://localhost:3000",
     },
   });
 }
@@ -342,5 +343,58 @@ describe("/schedules/:scheduleId/delete", () => {
       where: { scheduleId },
     });
     expect(schedule).toBeNull();
+  });
+});
+
+describe("/settings", () => {
+  beforeAll(() => {
+    mockIronSession();
+  });
+
+  afterAll(async () => {
+    jest.restoreAllMocks();
+    await prisma.setting.delete({ where: { userId: testUser.userId } });
+  });
+
+  test("設定を保存・更新することができる", async () => {
+    await prisma.user.upsert({
+      where: { userId: testUser.userId },
+      create: testUser,
+      update: testUser,
+    });
+
+    const app = require("./app");
+
+    // 追加
+    const addRes = await sendFormRequest(app, "/settings",
+      {
+        colorMode: "dark",
+      }
+    );
+
+    expect(addRes.status).toBe(302);
+
+    const addSettings = await prisma.setting.findMany({
+      where: { userId: testUser.userId },
+    });
+
+    expect(addSettings.length).toBe(1);
+    expect(addSettings[0].colorMode).toBe("dark");
+
+    // 変更
+    const changeRes = await sendFormRequest(app, "/settings",
+      {
+        colorMode: "light",
+      }
+    );
+
+    expect(changeRes.status).toBe(302);
+
+    const changeSettings = await prisma.setting.findMany({
+      where: { userId: testUser.userId },
+    });
+
+    expect(changeSettings.length).toBe(1);
+    expect(changeSettings[0].colorMode).toBe("light");
   });
 });
