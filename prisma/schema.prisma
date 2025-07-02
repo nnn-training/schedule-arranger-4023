@@ -24,14 +24,15 @@ model User {
 }
 
 model Schedule {
-  scheduleId   String      @id @db.Uuid
-  scheduleName String      @db.VarChar(255)
-  memo         String      @db.Text
-  createdBy    Int
-  updatedAt    DateTime    @db.Timestamptz(6)
-  user         User        @relation(fields: [createdBy], references: [userId], onDelete: Cascade)
-  candidates   Candidate[]
-  comments     Comment[]
+  scheduleId          String      @id @db.Uuid
+  scheduleName        String      @db.VarChar(255)
+  memo                String      @db.Text
+  createdBy           Int
+  updatedAt           DateTime    @db.Timestamptz(6)
+  user                User        @relation(fields: [createdBy], references: [userId], onDelete: Cascade)
+  candidates          Candidate[]
+  comments            Comment[]
+  provisionalDecision Int         @default(0)
 
   @@index(fields: [createdBy])
   @@map(name: "schedules")

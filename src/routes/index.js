@@ -1,15 +1,15 @@
-const { Hono } = require('hono');
-const { html } = require('hono/html');
-const layout = require('../layout');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient({ log: ['query'] });
+const { Hono } = require("hono");
+const { html } = require("hono/html");
+const layout = require("../layout");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient({ log: ["query"] });
 
-const dayjs = require('dayjs');
-const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
-dayjs.tz.setDefault('Asia/Tokyo');
+dayjs.tz.setDefault("Asia/Tokyo");
 
 const app = new Hono();
 
@@ -19,6 +19,7 @@ function scheduleTable(schedules) {
       <tr>
         <th>予定名</th>
         <th>更新日時</th>
+        <th>仮決定候補</th>
       </tr>
       ${schedules.map(
         (schedule) => html`
@@ -29,6 +30,7 @@ function scheduleTable(schedules) {
               </a>
             </td>
             <td>${schedule.formattedUpdatedAt}</td>
+            <td>${schedule.provisionalDecision}</td>
           </tr>
         `,
       )}
@@ -36,16 +38,22 @@ function scheduleTable(schedules) {
   `;
 }
 
-app.get('/', async (c) => {
-  const { user } = c.get('session') ?? {};
+app.get("/", async (c) => {
+  const { user } = c.get("session") ?? {};
   const schedules = user
     ? await prisma.schedule.findMany({
       where: { createdBy: user.id },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
+      include: { candidates: true }, //候補取得
     })
     : [];
   schedules.forEach((schedule) => {
-    schedule.formattedUpdatedAt = dayjs(schedule.updatedAt).tz().format('YYYY/MM/DD HH:mm');
+    schedule.formattedUpdatedAt = dayjs(schedule.updatedAt).tz().format("YYYY/MM/DD HH:mm");
+  //仮決定候補の名前を取得
+  const provisionalCandidate = schedule.candidates.find(
+    (c) => c.candidateId === schedule.provisionalDecision
+  );
+    schedule.provisionalDecision = provisionalCandidate? provisionalCandidate.candidateName: "未定";
   });
 
   return c.html(
@@ -71,10 +79,10 @@ app.get('/', async (c) => {
                       <h3 class="my-3">あなたの作った予定一覧</h3>
                       ${scheduleTable(schedules)}
                     `
-                  : ''}
+                  : ""}
               </div>
             `
-          : ''}
+          : ""}
       `,
     ),
   );
