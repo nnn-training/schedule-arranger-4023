@@ -2,6 +2,9 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient({ log: ["query"] });
 
+const { randomUUID } = require("node:crypto");
+
+
 const testUser = {
   userId: 0,
   username: "testuser",
@@ -80,33 +83,75 @@ describe("/logout", () => {
 });
 
 describe("/", () => {
-  test("ホーム画面で仮決定候補が表示される",() => {
-    const schedule = {
-      provisionalDecision :2,
-      candidates: [
-        {candidateId: 1, candidateName: "候補A"},
-        {candidateId: 2, candidateName: "候補B"},
-      ],
-    };
-    const provisionalCandidate = schedule.candidates.find(
-      (c) => c.candidateId === schedule.provisionalDecision
-    );
-    schedule.provisionalDecision = provisionalCandidate? provisionalCandidate.candidateName : "未定"
-    expect(schedule.provisionalDecision).toBe("候補B");
+  const { provisionalCandidateAcquisition } = require("./routes/index");
+  let userTest;
+  let testSchedule;
+  let candidateA, candidateB;
+
+  beforeAll(async () => {
+    mockIronSession();
+    await prisma.user.deleteMany({ where: { userId: -1 } }); // userId-1があった場合削除
+    userTest = await prisma.user.create({
+    data: {
+    userId: -1,
+    username: "userTest",
+  },
+});
+
+    // スケジュールと候補作成
+    const scheduleId = randomUUID();
+    testSchedule = await prisma.schedule.create({
+      data: {
+        scheduleId,
+        scheduleName: "テストスケジュール",
+        memo: "テストメモ",
+        createdBy: userTest.userId,
+        updatedAt: new Date(),
+        provisionalDecision: 0, // 後で更新
+        candidates: {
+          create: [
+            { candidateName: "候補A" },
+            { candidateName: "候補B" },
+          ],
+        },
+      },
+      include: { candidates: true },
+    });
+
+    // 候補取得
+    candidateA = testSchedule.candidates[0];
+    candidateB = testSchedule.candidates[1];
+
+    // 仮決定候補を設定
+    await prisma.schedule.update({
+      where: { scheduleId: testSchedule.scheduleId },
+      data: { provisionalDecision: candidateA.candidateId },
+    });
   });
-  test("ホーム画面で未定が表示される",() => {
-    const schedule = {
-      provisionalDecision :0,
-      candidates: [
-        {candidateId: 1, candidateName: "候補A"},
-        {candidateId: 2, candidateName: "候補B"},
-      ],
-    };
-    const provisionalCandidate = schedule.candidates.find(
-      (c) => c.candidateId === schedule.provisionalDecision
-    );
-    schedule.provisionalDecision = provisionalCandidate? provisionalCandidate.candidateName : "未定"
-    expect(schedule.provisionalDecision).toBe("未定");
+
+  afterAll(async () => {
+    // テストデータ削除
+    await prisma.availability.deleteMany({ where: { scheduleId: testSchedule.scheduleId } });
+    await prisma.comment.deleteMany({ where: { scheduleId: testSchedule.scheduleId } });
+    await prisma.candidate.deleteMany({ where: { scheduleId: testSchedule.scheduleId } });
+    await prisma.schedule.delete({ where: { scheduleId: testSchedule.scheduleId } });
+    await prisma.user.delete({ where: { userId: userTest.userId } });
+    await prisma.$disconnect();
+  });
+
+  test("仮決定候補が正しく取得される", async () => {
+    const result = await provisionalCandidateAcquisition(testSchedule.scheduleId);
+    expect(result).toBe("候補A");
+  });
+
+  test("仮決定候補が存在しない場合は '未定' を返す", async () => {
+    await prisma.schedule.update({
+      where: { scheduleId: testSchedule.scheduleId },
+      data: { provisionalDecision: 999999 }, // 存在しないID
+    });
+
+    const result = await provisionalCandidateAcquisition(testSchedule.scheduleId);
+    expect(result).toBe("未定");
   });
 });
 

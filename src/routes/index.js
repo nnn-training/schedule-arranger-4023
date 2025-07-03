@@ -13,6 +13,21 @@ dayjs.tz.setDefault("Asia/Tokyo");
 
 const app = new Hono();
 
+//仮決定候補を取得
+async function provisionalCandidateAcquisition(scheduleId){
+  const schedule = await prisma.schedule.findUnique({
+    where: {scheduleId},
+    include: {
+      candidates: true,
+    },
+  });
+  const provisionalCandidate = schedule.candidates.find(
+    (c) => c.candidateId === schedule.provisionalDecision
+  );
+    return provisionalCandidate?.candidateName || "未定";
+}
+app.provisionalCandidateAcquisition = provisionalCandidateAcquisition;
+
 function scheduleTable(schedules) {
   return html`
     <table class="table">
@@ -30,7 +45,7 @@ function scheduleTable(schedules) {
               </a>
             </td>
             <td>${schedule.formattedUpdatedAt}</td>
-            <td>${schedule.provisionalDecision}</td>
+            <td>${schedule.provisionalCandidateName}</td>
           </tr>
         `,
       )}
@@ -47,14 +62,11 @@ app.get("/", async (c) => {
       include: { candidates: true }, //候補取得
     })
     : [];
-  schedules.forEach((schedule) => {
+  for (const schedule of schedules) {
     schedule.formattedUpdatedAt = dayjs(schedule.updatedAt).tz().format("YYYY/MM/DD HH:mm");
-  //仮決定候補の名前を取得
-  const provisionalCandidate = schedule.candidates.find(
-    (c) => c.candidateId === schedule.provisionalDecision
-  );
-    schedule.provisionalDecision = provisionalCandidate? provisionalCandidate.candidateName: "未定";
-  });
+    schedule.provisionalCandidateName = await provisionalCandidateAcquisition(schedule.scheduleId);
+}
+
 
   return c.html(
     layout(
