@@ -293,7 +293,7 @@ app.get('/:scheduleId/edit', async (c) => {
           </button>
         </form>
         <h3 class="my-3">危険な変更</h3>
-        <form method="post" action="/schedules/${schedule.scheduleId}/delete">
+        <form method="post" action="/schedules/${schedule.scheduleId}/delete" id="delete-schedule-form">
           <button type="submit" class="btn btn-danger">
             この予定を削除する <i class="bi bi-trash"></i>
           </button>

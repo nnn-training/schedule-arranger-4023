@@ -49,3 +49,11 @@ buttonSelfComment.on('click', () => {
       });
   }
 });
+
+const deleteScheduleForm = $('#delete-schedule-form');
+deleteScheduleForm.on('submit', (e) => {
+  e.preventDefault();
+  if (confirm('本当にこの予定を削除しますか?')) {
+    e.currentTarget.submit();
+  }
+});
