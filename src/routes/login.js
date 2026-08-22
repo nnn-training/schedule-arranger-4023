@@ -1,5 +1,6 @@
 const { Hono } = require('hono');
 const { html } = require('hono/html');
+const { setCookie } = require('hono/cookie');
 const layout = require('../layout');
 
 const app = new Hono();
